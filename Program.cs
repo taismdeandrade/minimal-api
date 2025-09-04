@@ -76,6 +76,23 @@ app.MapGet("/veiculos/{id}", ([FromRoute]int id, IVeiculoServico veiculoServico)
     return Results.Ok(veiculo);
 }).WithTags("Veiculo");
 
+app.MapPut("/veiculos/{id}", ([FromRoute]int id, VeiculoDTO veiculoDto, IVeiculoServico veiculoServico) =>
+{
+    var veiculo = veiculoServico.BuscaPorId(id);
+
+    if (veiculo == null)
+    {
+        return Results.NotFound();
+    }
+
+    veiculo.Nome = veiculoDto.Nome;
+    veiculo.Marca = veiculoDto.Marca;
+    veiculo.Ano = veiculoDto.Ano;
+
+    veiculoServico.Atualizar(veiculo);
+    return Results.Ok(veiculo);
+
+}).WithTags("Veiculo");
 
 app.UseSwagger();
 app.UseSwaggerUI();
