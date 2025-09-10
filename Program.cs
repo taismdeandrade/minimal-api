@@ -15,10 +15,6 @@ builder.Services.AddScoped<IVeiculoServico, VeiculoServico>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-//builder.Services.AddOpenApi();
-
 builder.Services.AddDbContext<DbContexto>(options =>
 {
     options.UseMySql(
@@ -43,8 +39,91 @@ app.MapPost("/adiministradores/login", ([FromBody] LoginDTO loginDTO, IAdministr
     }
 }).WithTags("Administrador");
 
-app.MapPost("/veiculos", ([FromBody] VeiculoDTO veiculoDTO, IVeiculoServico veiculoServico) =>
+app.MapPost("/adiministradores", ([FromBody] AdministradorDTO administradorDTO, IAdministradorServico administradorServico) =>
 {
+    var validacao = new ErrosDeValidacao
+    {
+        Mensagens = new List<string>()
+    };
+
+    if (string.IsNullOrEmpty(administradorDTO.Email))
+    {
+        validacao.Mensagens.Add("E-mail não pode ser vazio");
+    }
+    if (string.IsNullOrEmpty(administradorDTO.Senha))
+    {
+        validacao.Mensagens.Add("Senha não pode ser vazio");
+    }
+    if (string.IsNullOrEmpty(administradorDTO.Perfil.ToString()))
+    {
+        validacao.Mensagens.Add("Perfil não pode ser vazio");
+    }
+
+    if (validacao.Mensagens.Count > 0)
+    {
+        return Results.BadRequest(validacao);
+    }
+
+    var administrador = new Administrador
+    {
+        Email = administradorDTO.Email,
+        Senha = administradorDTO.Senha,
+        Perfil = administradorDTO.Perfil.ToString()
+    };
+
+    administradorServico.Incluir(administrador);
+    return Results.Created($"/administradores/{administrador.Id}", administrador);
+
+}).WithTags("Administrador");
+
+app.MapGet("/administradores", ([FromQuery]int? pagina, IAdministradorServico administradorServico) =>
+{
+    var veiculos = administradorServico.Todos(pagina);
+    return Results.Ok(administradorServico);
+}).WithTags("Administrador");
+
+app.MapGet("/administrador/{id}", ([FromRoute]int id, IAdministradorServico administradorServico) =>
+{    
+    var adm = administradorServico.BuscaPorId(id);
+
+    if (adm == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(adm);
+}).WithTags("Admninistrador");
+
+ErrosDeValidacao validaDTO(VeiculoDTO veiculoDTO)
+{
+    var validacao = new ErrosDeValidacao
+    {
+        Mensagens = new List<string>()
+    };
+
+    if (string.IsNullOrEmpty(veiculoDTO.Nome))
+    {
+        validacao.Mensagens.Add("O nome não pode ser vazio.");
+    }
+    if (string.IsNullOrEmpty(veiculoDTO.Marca))
+    {
+        validacao.Mensagens.Add("A marca não pode estar em branco.");
+    }
+    if (veiculoDTO.Ano < 1950)
+    {
+        validacao.Mensagens.Add("Veiculo muito antigo, aceitos apenas anos superiores a 1950.");
+    }
+
+    return validacao;
+}
+
+app.MapPost("/veiculos", ([FromBody] VeiculoDTO veiculoDTO, IVeiculoServico veiculoServico) =>
+{   
+    var validacao = validaDTO(veiculoDTO);
+    if (validacao.Mensagens.Count > 0)
+    {
+        return Results.BadRequest(validacao);
+    }
     var veiculo = new Veiculo
     {
         Nome = veiculoDTO.Nome,
@@ -63,9 +142,8 @@ app.MapGet("/veiculos", ([FromQuery]int? pagina, IVeiculoServico veiculoServico)
     return Results.Ok(veiculos);
 }).WithTags("Veiculo");
 
-
 app.MapGet("/veiculos/{id}", ([FromRoute]int id, IVeiculoServico veiculoServico) =>
-{
+{    
     var veiculo = veiculoServico.BuscaPorId(id);
 
     if (veiculo == null)
@@ -78,6 +156,11 @@ app.MapGet("/veiculos/{id}", ([FromRoute]int id, IVeiculoServico veiculoServico)
 
 app.MapPut("/veiculos/{id}", ([FromRoute]int id, VeiculoDTO veiculoDto, IVeiculoServico veiculoServico) =>
 {
+    var validacao = validaDTO(veiculoDto);
+    if (validacao.Mensagens.Count > 0)
+    {
+        return Results.BadRequest(validacao);
+    }
     var veiculo = veiculoServico.BuscaPorId(id);
 
     if (veiculo == null)
