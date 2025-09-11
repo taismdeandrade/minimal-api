@@ -2,7 +2,7 @@ namespace MinimalAPI.Dominio.Enums
 {
     public enum Perfil
     {
-        adm,
-        editor
+        Adm,
+        Editor
     }
 }

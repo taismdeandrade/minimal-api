@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MinimalAPI.Dominio.DTO;
 using MinimalAPI.Dominio.Entidades;
+using MinimalAPI.Dominio.Enums;
 using MinimalAPI.Dominio.Interfaces;
 using MinimalAPI.Dominio.ModelViews;
 using MinimalAPI.Infraestrutura.Db;
@@ -78,12 +79,22 @@ app.MapPost("/adiministradores", ([FromBody] AdministradorDTO administradorDTO, 
 
 app.MapGet("/administradores", ([FromQuery]int? pagina, IAdministradorServico administradorServico) =>
 {
-    var veiculos = administradorServico.Todos(pagina);
+    var adms = new List<AdministradorModelView>();
+    var administradores = administradorServico.Todos(pagina);
+    foreach (var adm in administradores)
+    {
+        adms.Add(new AdministradorModelView
+        {
+            Id = adm.Id,
+            Email = adm.Email,
+            Perfil = adm.Perfil
+        });
+    }
     return Results.Ok(administradorServico);
 }).WithTags("Administrador");
 
 app.MapGet("/administrador/{id}", ([FromRoute]int id, IAdministradorServico administradorServico) =>
-{    
+{
     var adm = administradorServico.BuscaPorId(id);
 
     if (adm == null)
@@ -91,7 +102,12 @@ app.MapGet("/administrador/{id}", ([FromRoute]int id, IAdministradorServico admi
         return Results.NotFound();
     }
 
-    return Results.Ok(adm);
+    return Results.Ok(new AdministradorModelView
+        {
+            Id = adm.Id,
+            Email = adm.Email,
+            Perfil = adm.Perfil
+        });
 }).WithTags("Admninistrador");
 
 ErrosDeValidacao validaDTO(VeiculoDTO veiculoDTO)
